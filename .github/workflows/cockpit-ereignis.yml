@@ -11,6 +11,8 @@
 #       ergebnis: ${{ contains(needs.*.result, 'failure') && 'failure' || needs.ausrollen.result }}
 # Aus dem Ergebnis folgt die Schwere: success ist info, failure fehler, cancelled und skipped
 # warnung. Aufgabe und Vorhaben nimmt das Cockpit aus dem Branch oder aus grund (A-…, V-…).
+# Mit release und umgebung prod gilt ein Erfolg als Ausrollen des Releases: das Cockpit setzt seine
+# Aufgaben live; ein Fehlschlag setzt nichts (A-093).
 # Anmeldung wie in cockpit-melden.yml mit einem OIDC-Token von GitHub (Audience cockpit), ohne
 # Geheimnis. Scheitert das Melden, warnt der Job nur: Ein Lauf wird nicht rot, weil das Cockpit
 # gerade nicht antwortet.
@@ -36,6 +38,14 @@ on:
         description: Anlass mit Aufgabe oder Vorhaben (A-042, V-07), wenn der Branch sie nicht nennt
         type: string
         required: false
+      release:
+        description: Tag des Standes, den der Lauf ausgerollt hat (2026.11.07 oder 2026.11.07-rc.1)
+        type: string
+        required: false
+      umgebung:
+        description: Wohin ausgerollt wurde (dev, beta, prod); mit release und prod setzt ein Erfolg die Aufgaben des Releases live
+        type: string
+        required: false
       cockpit_url:
         description: Andere Cockpit-Instanz als Cockpit live (https://cockpit.rust-infra.de)
         type: string
@@ -59,6 +69,8 @@ jobs:
           ERGEBNIS: ${{ inputs.ergebnis }}
           TEXT: ${{ inputs.text }}
           GRUND: ${{ inputs.grund }}
+          RELEASE: ${{ inputs.release }}
+          UMGEBUNG: ${{ inputs.umgebung }}
           BRANCH: ${{ github.head_ref || github.ref_name }}
           SHA: ${{ github.sha }}
           LAUF: ${{ github.run_id }}
@@ -81,9 +93,12 @@ jobs:
           echo "::add-mask::$token"
           daten=$(jq -n --arg quelle "$QUELLE" --arg schwere "$schwere" --arg text "$text" --arg branch "$BRANCH" \
             --arg commit "$SHA" --arg lauf "$LAUF" --arg url "$LAUF_URL" --arg aufgabe "$aufgabe" --arg vorhaben "$vorhaben" \
+            --arg release "$RELEASE" --arg umgebung "$UMGEBUNG" \
             '{quelle: $quelle, schwere: $schwere, text: $text, branch: $branch, commit: $commit, lauf: $lauf, url: $url}
              + (if $aufgabe != "" then {aufgabe: ($aufgabe | ascii_upcase)} else {} end)
-             + (if $vorhaben != "" then {vorhaben: ($vorhaben | ascii_upcase)} else {} end)')
+             + (if $vorhaben != "" then {vorhaben: ($vorhaben | ascii_upcase)} else {} end)
+             + (if $release != "" then {release: $release} else {} end)
+             + (if $umgebung != "" then {umgebung: $umgebung} else {} end)')
           curl -sS --fail-with-body -X POST "${COCKPIT_URL%/}/__cockpit/api/ereignisse" \
             -H "content-type: application/json" -H "Authorization: Bearer $token" -d "$daten" \
             || echo "::warning::Cockpit hat das Ereignis nicht angenommen ($QUELLE $wie)"
