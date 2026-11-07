@@ -1,0 +1,54 @@
+# Meldet Cockpit live einen neuen Stand eines Pull Requests (Befund 136, UMG-2.9): steht die Aufgabe
+# des Branches in der Abnahme, startet das Cockpit den Neulauf ihrer Testauswahl. Ein Push auf main,
+# der cockpit.json ändert, meldet die neue Projekt-Konfiguration (A-058): das Cockpit liest dann
+# genau dieses Repo neu, sonst fragt es GitHub nie von sich aus. Eingebunden aus jedem Repo mit
+#   on: pull_request: types: [synchronize, reopened, ready_for_review]
+#       push: { branches: [main], paths: [cockpit.json] }
+#   jobs: melden:
+#           permissions: { contents: read, id-token: write }
+#           uses: cloud-rust/werkzeuge-oeffentlich/.github/workflows/cockpit-melden.yml@main
+# Die Aufruf-Datei heißt in jedem Repo melden.yml. Ein neues Repo braucht sonst nichts (A-059):
+# Cockpit live hat einen Standard; die Eingabe cockpit_url oder eine Repo-Variable COCKPIT_URL
+# lenken nur auf eine andere Instanz, etwa eine zum Testen.
+# Anmeldung ohne gespeichertes Geheimnis (Befund 160, TSA-3.5): ein OIDC-Token von GitHub mit
+# Audience „cockpit“; das Cockpit prüft es und lässt nur Repos seiner Projekte zu. Gibt es kein
+# Token (z. B. bei Dependabot), meldet der Workflow nichts und sagt das.
+# konvention-ausnahme: run-logik: ein einziger Aufruf ans Cockpit; läuft in jedem Repo und bei Dependabot ohne Secrets, kann werkzeuge also nicht nachladen; liegt öffentlich, damit auch öffentliche Repos ihn einbinden können (A-137)
+name: Cockpit melden
+
+on:
+  workflow_call:
+    inputs:
+      cockpit_url:
+        description: Andere Cockpit-Instanz als Cockpit live (https://cockpit.rust-infra.de)
+        type: string
+        required: false
+
+permissions: {}
+
+jobs:
+  melden:
+    name: Cockpit melden
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Neuen Stand melden
+        env:
+          COCKPIT_URL: ${{ inputs.cockpit_url || vars.COCKPIT_URL || 'https://cockpit.rust-infra.de' }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          AKTION: ${{ github.event_name == 'push' && 'konfig' || github.event.action }}
+        run: |
+          if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+            echo "::notice::Kein OIDC-Token verfügbar (permissions: id-token: write fehlt oder Dependabot), nichts gemeldet"
+            exit 0
+          fi
+          token=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=cockpit" | jq -r .value)
+          echo "::add-mask::$token"
+          daten=$(jq -n --arg repo "$REPO" --arg branch "$BRANCH" --arg sha "$SHA" --arg aktion "$AKTION" '{repo: $repo, branch: $branch, sha: $sha, aktion: $aktion}')
+          curl -sS --fail-with-body -X POST "${COCKPIT_URL%/}/__cockpit/api/github/ereignis" \
+            -H "content-type: application/json" -H "Authorization: Bearer $token" -d "$daten"
