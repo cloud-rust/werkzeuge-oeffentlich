@@ -7,6 +7,7 @@ Gemeinsame Workflows, die auch **öffentliche** Repos des Kontos einbinden müss
 | Ort | Inhalt |
 |---|---|
 | `.github/workflows/cockpit-melden.yml` | meldet Cockpit live einen neuen Stand eines Pull Requests |
+| `.github/workflows/cockpit-ereignis.yml` | meldet Cockpit live, wie ein Lauf ausging (Ausrollen, Kandidat, Release) |
 
 Einbinden, in jedem Repo als `.github/workflows/melden.yml`:
 
@@ -15,4 +16,17 @@ jobs:
   melden:
     permissions: { contents: read, id-token: write }
     uses: cloud-rust/werkzeuge-oeffentlich/.github/workflows/cockpit-melden.yml@main
+```
+
+Ein Lauf meldet sein Ergebnis ins Event-Center als letzter Job:
+
+```yaml
+  melden:
+    needs: [ausrollen]
+    if: always()
+    permissions: { contents: read, id-token: write }
+    uses: cloud-rust/werkzeuge-oeffentlich/.github/workflows/cockpit-ereignis.yml@main
+    with:
+      quelle: ausrollen
+      ergebnis: ${{ contains(needs.*.result, 'failure') && 'failure' || needs.ausrollen.result }}
 ```
