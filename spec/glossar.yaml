@@ -1,0 +1,8 @@
+# Begriffe von werkzeuge-oeffentlich mit ihrem Namen im Code dieses Repos (project-layout.md, „Wissen“).
+begriffe:
+  - begriff: Ereignis
+    bedeutung: Was ein Lauf oder Skript dem Event-Center meldet, mit Quelle, Schwere und Text
+    code: ereignis          # Workflow cockpit-ereignis.yml
+  - begriff: Schwere
+    bedeutung: Wie ernst ein Ereignis ist (fehler, warnung, info); folgt aus dem Ergebnis des Laufs
+    code: schwere

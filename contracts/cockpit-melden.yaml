@@ -1,0 +1,13 @@
+# Vertrag, den werkzeuge-oeffentlich anbietet (project-layout.md, „Wissen“): der Workflow, den jedes
+# Repo als .github/workflows/melden.yml einbindet.
+vertrag: cockpit-melden
+version: 1
+art: workflow
+beschreibung: Meldet dem Cockpit einen neuen Stand eines Pull Requests und eine geänderte cockpit.json auf main; ohne OIDC-Token (z. B. Dependabot) meldet er nichts.
+endpunkt: "uses: cloud-rust/werkzeuge-oeffentlich/.github/workflows/cockpit-melden.yml@main"
+anmeldung: OIDC-Token von GitHub mit Audience cockpit; der aufrufende Job braucht id-token write
+themen:
+  - name: Neuen Stand melden
+    pflicht: []
+    frei: [cockpit_url]
+    antwort: der Job „Cockpit melden“; das Cockpit startet den Neulauf oder liest die Konfiguration neu

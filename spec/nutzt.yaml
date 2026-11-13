@@ -1,0 +1,8 @@
+# Verträge anderer Repos, die werkzeuge-oeffentlich nutzt (project-layout.md, „Wissen“).
+vertraege:
+  - vertrag: github-ereignis
+    version: 1
+    wo: .github/workflows/cockpit-melden.yml
+  - vertrag: ereignis-melden
+    version: 2
+    wo: .github/workflows/cockpit-ereignis.yml
