@@ -1,0 +1,16 @@
+# Vertrag, den werkzeuge-oeffentlich anbietet (project-layout.md, „Wissen“): der Workflow, mit dem ein
+# Lauf als letzter Job meldet, wie er ausging.
+vertrag: cockpit-ereignis
+version: 1
+art: workflow
+beschreibung: Meldet dem Event-Center des Cockpits Quelle und Ergebnis eines Laufs; die Schwere folgt aus dem Ergebnis. Scheitert das Melden, warnt der Job nur.
+endpunkt: "uses: cloud-rust/werkzeuge-oeffentlich/.github/workflows/cockpit-ereignis.yml@main"
+anmeldung: OIDC-Token von GitHub mit Audience cockpit; der aufrufende Job braucht id-token write
+themen:
+  - name: Ergebnis eines Laufs melden
+    pflicht: [quelle, ergebnis]
+    frei: [text, grund, release, umgebung, cockpit_url]
+    werte:
+      ergebnis: [success, failure, cancelled, skipped]
+      umgebung: [dev, beta, prod]
+    antwort: ein Ereignis im Event-Center; mit release und umgebung prod setzt ein Erfolg die Aufgaben des Releases live
