@@ -1,1 +1,4 @@
-{ "projekt": "cloud-infra" }
+{
+  "projekt": "cloud-infra",
+  "geruest": { "grund": 2 }
+}
